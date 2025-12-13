@@ -188,7 +188,7 @@
             progressText = 'Tracks added successfully';
         } catch (error) {
             console.error("Error finishing process", error);
-		    progressText = 'Something went wrong ❌';
+		    progressText = 'Something went wrong';
         } finally {
             isProcessing = false;
         }
@@ -336,7 +336,7 @@
 					{#if skippedLocalTracks.length > 0}
 						<div class="mt-4 p-3 bg-yellow-900/40 rounded-md">
 							<p class="text-sm font-semibold text-yellow-300">
-								⚠ Skipped local files ({skippedLocalTracks.length})
+								Skipped local files ({skippedLocalTracks.length})
 							</p>
 
 							<ul class="mt-2 max-h-40 overflow-y-auto text-xs text-yellow-200 space-y-1">
