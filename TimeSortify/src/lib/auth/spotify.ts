@@ -120,10 +120,3 @@ export async function getPlaylists() {
 
     return data;
 }
-
-export async function getPlaylistTracks(id: string) {
-    const res = await fetch(`https://api.spotify.com/v1/playlists/${id}/tracks?limit=1000`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    return await res.json();
-}

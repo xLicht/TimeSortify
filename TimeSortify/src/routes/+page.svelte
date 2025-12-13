@@ -2,9 +2,27 @@
     import {CLIENT_ID, REDIRECT_URI, SCOPES, generateCodeVerifier, generateCodeChallenge, getAllUserPlaylist} from '$lib/auth/spotify';
     import {onMount} from 'svelte';
     import {setAccessToken, getUserProfile, getPlaylists} from '$lib/auth/spotify';
+    import PlaylistCard from '$lib/components/PlaylistCard.svelte';
 
     let profile: any = null;
     let userPlaylists: any[] = [];
+    let selectedPlaylists = new Set<string>();
+    let orderBy = 'added_desc'; 
+    let duplicateStrategy: 'recent' | 'oldest' | null = null;
+
+    function selectDuplicateStrategy(value: 'recent' | 'oldest') {
+	duplicateStrategy = value; }
+
+    function togglePlaylist(id: string) {
+        if(selectedPlaylists.has(id)) {
+            selectedPlaylists.delete(id);
+        } else {
+            selectedPlaylists.add(id);
+        }
+        
+        selectedPlaylists = new Set(selectedPlaylists);
+    }
+
 
     async function getUserPlaylists() {
         try{
@@ -58,6 +76,7 @@
         window.location.href = url.toString();
 
     }
+
 </script>
 
 <main class="pt-8 space-y-6 bg-neutral-800">
@@ -65,19 +84,72 @@
 		<h1 class="text-4xl font-bold text-white font-[Signika]">TimeSortify</h1>
 	</div>
 
-	<div class="bg-neutral-700 items-center justify-center pt-8 ml-40 mr-40">
+	<div class="bg-neutral-700 items-center justify-center pt-8">
 		{#if profile}
-			<div class="flex items-center justify-center bg-red-300">
-				<p class="text-2xl font-[Signika] text-white">Welcome {profile.display_name} !</p>
+			<div class="flex items-center justify-center">
+				<p class="text-3xl font-[Signika] text-white font-bold">Welcome {profile.display_name} !</p>
 			</div>
-			<div class="bg-amber-200">
-				<p class="text-2xl font-[Signika] text-white">Your Playlists</p>
-				<p class="text-xl font-[Signika] text-white mr-68 pr-68">
+			<div class="ml-20 mr-20 pt-8">
+				<p class="text-3xl font-[Signika] text-white font-bold">Your Playlists</p>
+				<p class="text-xl font-[Signika] text-white">
 					Please, select from which playlist do you want to transfer into liked songs
 				</p>
 			</div>
-			<div class="grid">
-				<!--Here goes the gridplaylists-->
+			<div class="flex flex-col lg:flex-row gap-6 ml-20 mr-20">
+				<div class="w-full lg:w-2/3">
+					<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+						{#each userPlaylists as playlist}
+							<PlaylistCard
+								{playlist}
+								selected={selectedPlaylists.has(playlist.id)}
+								on:click={() => togglePlaylist(playlist.id)}
+							/>
+						{/each}
+					</div>
+				</div>
+
+				<div class="w-full lg:w-1/3 space-y-4 text-white font-[Signika] pt-8">
+					<p class="text-3xl font-bold">Settings</p>
+					<p class="text-xl font-semibold">Order By:</p>
+
+					<select
+						bind:value={orderBy}
+						class="w-full bg-neutral-600 text-white p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+					>
+						<option value="added_desc">Date added (newest first)</option>
+						<option value="added_asc">Date added (oldest first)</option>
+					</select>
+
+					<p class="text-xl font-semibold">If there are duplicated songs:</p>
+
+					<div class="space-y-2">
+						<label class="flex items-center gap-2 cursor-pointer">
+							<input
+								type="checkbox"
+								checked={duplicateStrategy === 'recent'}
+								on:change={() => selectDuplicateStrategy('recent')}
+							/>
+							<span>Use most recent date</span>
+						</label>
+
+						<label class="flex items-center gap-2 cursor-pointer">
+							<input
+								type="checkbox"
+								checked={duplicateStrategy === 'oldest'}
+								on:change={() => selectDuplicateStrategy('oldest')}
+							/>
+							<span>Use oldest date</span>
+						</label>
+					</div>
+
+					<button
+						class="mt-4 px-4 py-2 rounded-md transition
+		{duplicateStrategy ? 'bg-green-600 hover:bg-green-700' : 'bg-neutral-500 cursor-not-allowed'}"
+						disabled={!duplicateStrategy}
+					>
+						Finish
+					</button>
+				</div>
 			</div>
 		{:else}
 			<button
