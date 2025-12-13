@@ -104,19 +104,48 @@ export async function getAllUserPlaylist() {
     return playlists;
 }
 
-// not used
-export async function getPlaylists() {
-    const res = await fetch("https://api.spotify.com/v1/me/playlists?limit=50", {
-        headers: { Authorization: `Bearer ${accessToken}` }
-    });
 
-    const data = await res.json();
+export async function getAllPlaylistTracks(playlistId: string) {
+    let allTracks: any[] = [];
+    let offset = 0;
+    const limit = 100;
 
-    if (!res.ok) {
-        throw new Error(
-            data?.error?.message || "Failed to fetch user playlists"
-        );
+    while (true) {
+        const res = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=${limit}&offset=${offset}`,
+			{
+				headers: { Authorization: `Bearer ${accessToken}` }
+			}
+		);
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data?.error?.message || 'Failed to fetch playlist tracks');
+        }
+
+        allTracks.push(...data.items);
+
+        if (data.items.length < limit) break;
+
+        offset += limit;
     }
 
-    return data;
+    return allTracks;
+
+}
+
+export async function addTracksToLiked(trackIds: string[]) {
+   const res = await fetch("https://api.spotify.com/v1/me/tracks", {
+		method: "PUT",
+		headers: {
+			Authorization: `Bearer ${accessToken}`,
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({ ids: trackIds })
+	});
+
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error?.error?.message || "Failed to Add Tracks");
+    }
 }
