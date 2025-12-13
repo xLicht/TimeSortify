@@ -13,6 +13,9 @@
         artist: string;
     }[] = [];
 
+    let etaSeconds = 0;
+    let avgStepTime = 500; // avg batch ms
+
 
 
     let profile: any = null;
@@ -129,31 +132,50 @@
     
 
     async function addTracksStrictly(trackIds: string[]) {
-	for (let i = 0; i < trackIds.length; i++) {
+        for (let i = 0; i < trackIds.length; i++) {
+            const stepStart = Date.now();
             try {
                 await addTracksToLiked([trackIds[i]]);
             } catch (e) {
                 console.warn(`Skipped track ${trackIds[i]}`, e);
                 continue;
             }
+                const stepTime = Date.now() - stepStart;
+		        avgStepTime = Math.round((avgStepTime + stepTime) / 2);
 
-            progress = Math.round(((i + 1) / trackIds.length) * 100);
-            progressText = `Adding track ${i + 1} of ${trackIds.length}`;
-            await sleep(500);
-        }
+		        const remaining = trackIds.length - (i + 1);
+		        etaSeconds = Math.ceil((remaining * avgStepTime) / 1000);
+
+                progress = Math.round(((i + 1) / trackIds.length) * 100);
+                progressText = `Adding track ${i + 1} of ${trackIds.length}`;
+                await sleep(500);
+            }
     }
 
 
     async function addTracksFast(trackIds: string[]) {
-	const batches = chunkArray(trackIds, 50);
+        const batches = chunkArray(trackIds, 50);
 
-	for (let i = 0; i < batches.length; i++) {
-		await addTracksToLiked(batches[i]);
+        for (let i = 0; i < batches.length; i++) {
+            const batchStart = Date.now();
 
-		progress = Math.round(((i + 1) / batches.length) * 100);
-		await sleep(300);
-	}
-}
+            try {
+                await addTracksToLiked(batches[i]);
+            } catch (e) {
+                console.warn('Batch failed, skipping local tracks', e);
+            }
+
+            const batchTime = Date.now() - batchStart;
+            avgStepTime = Math.round((avgStepTime + batchTime) / 2);
+
+            const remaining = batches.length - (i + 1);
+            etaSeconds = Math.ceil((remaining * avgStepTime) / 1000);
+
+            progress = Math.round(((i + 1) / batches.length) * 100);
+
+            await sleep(300);
+        }
+    }
 
 
     async function onFinish() {
@@ -193,6 +215,14 @@
             isProcessing = false;
         }
     }
+
+    function formatETA(seconds: number) {
+        if (seconds < 60) return `${seconds}s`;
+        const min = Math.floor(seconds / 60);
+        const sec = seconds % 60;
+        return `${min}m ${sec}s`;
+    }
+
     
 
     onMount(async () => {
@@ -330,6 +360,13 @@
 							</div>
 
 							<p class="text-sm text-neutral-400 text-right">{progress}%</p>
+						</div>
+
+						<div class="flex justify-between text-xs text-neutral-400">
+							<span>{progress}%</span>
+							{#if etaSeconds > 0}
+								<span>ETA: {formatETA(etaSeconds)}</span>
+							{/if}
 						</div>
 					{/if}
 
