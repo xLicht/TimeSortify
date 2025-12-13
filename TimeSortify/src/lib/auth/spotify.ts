@@ -68,14 +68,57 @@ export async function getUserProfile() {
     const res = await fetch('https://api.spotify.com/v1/me', {
         headers: {Authorization: `Bearer ${accessToken}`}
     });
-    return await res.json();
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        throw new Error(
+            data?.error?.message || "Failed to fetch user profile"
+        );
+    }
+
+    return data;
 }
 
+export async function getAllUserPlaylist() {
+    let playlists: any[] = [];
+    let url: string | null = "https://api.spotify.com/v1/me/playlists?limit=50";
+
+    while (url) {
+        const res = await fetch(url, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(
+                data?.error?.message || "Failed to fetch playlists"
+            );
+        }
+
+        playlists = playlists.concat(data.items);
+        url = data.next;
+    }
+
+    return playlists;
+}
+
+// not used
 export async function getPlaylists() {
     const res = await fetch("https://api.spotify.com/v1/me/playlists?limit=50", {
         headers: { Authorization: `Bearer ${accessToken}` }
     });
-    return await res.json();
+
+    const data = await res.json();
+
+    if (!res.ok) {
+        throw new Error(
+            data?.error?.message || "Failed to fetch user playlists"
+        );
+    }
+
+    return data;
 }
 
 export async function getPlaylistTracks(id: string) {
